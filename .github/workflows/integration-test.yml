@@ -73,3 +73,7 @@ jobs:
             -   name: Webapp container logs
                 if: always()
                 run: docker logs ${{ steps.load_image.outputs.container_id }}
+
+            -   name: Shared files
+                if: always()
+                run: ls -l ${{ steps.load_image.outputs.shared_folder }}
