@@ -58,3 +58,9 @@ jobs:
                 with:
                     name: ${{ inputs.repo_name }}
                     path: /tmp/${{ inputs.repo_name }}.tar
+
+            -   name: Clean cache
+                if: always()
+                run: |
+                    find ~/.m2/repository/ -name '*.war'
+                    find ~/.m2/repository/ -name '*.war' -delete
