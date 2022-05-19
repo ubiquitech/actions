@@ -53,7 +53,7 @@ jobs:
 
             -   name: Setup updateVersion.sh
                 run: |
-                    echo "${SCRIPT}" >> updateVersion.sh
+                    echo "${SCRIPT}" > updateVersion.sh
                     chmod +x updateVersion.sh
                     ./updateVersion.sh ${HOST} ${SERVICE_NAME} ${VERSION}
                 env:

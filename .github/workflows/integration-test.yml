@@ -67,7 +67,7 @@ jobs:
             -   name: Run integration tests
                 working-directory: integration
                 run: |
-                    mvn test -Dtest=${{ matrix.suite }} -Dit.url=http://localhost:8080 -Dit.runner.host=172.17.0.1 -Dit.file.root=./shared-files:/data 
+                    mvn test -Dtest=${{ matrix.suite }} -Dit.url=http://localhost:8080 -Dit.runner.host=172.17.0.1 -Dit.file.root=../shared-files:/data 
 
             -   name: Webapp container logs
                 if: always()
