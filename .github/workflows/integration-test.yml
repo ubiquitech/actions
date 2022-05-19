@@ -40,6 +40,7 @@ jobs:
                     docker image ls -a
                     mkdir ./shared-files
                     current_dir=$(pwd)
+                    echo "::set-output name=shared_folder::$current_dir/shared-files"
                     echo "::set-output name=container_id::$(docker run -d -p 8080:8080 -v $current_dir/shared-files:/data --add-host=host.docker.internal:host-gateway ${{inputs.repo_name}}:latest)"
 
             # use maven to run the integration tests (faster than building the integration-test-jar-with-dependencies
@@ -67,7 +68,7 @@ jobs:
             -   name: Run integration tests
                 working-directory: integration
                 run: |
-                    mvn test -Dtest=${{ matrix.suite }} -Dit.url=http://localhost:8080 -Dit.runner.host=172.17.0.1 -Dit.file.root=../shared-files:/data 
+                    mvn test -Dtest=${{ matrix.suite }} -Dit.url=http://localhost:8080 -Dit.runner.host=172.17.0.1 -Dit.file.root=${{ steps.outputs.load_image.shared_folder }}:/data 
 
             -   name: Webapp container logs
                 if: always()
