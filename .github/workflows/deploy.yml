@@ -27,6 +27,7 @@ name: Deploy to environment
 
 jobs:
     deploy:
+        concurrency: ${{ inputs.host }}-${{ inputs.service_name }}
         environment:
             name: ${{ inputs.environment }}
         env:
