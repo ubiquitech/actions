@@ -1,0 +1,78 @@
+name: Run integration tests against Docker image
+
+on:
+    workflow_call:
+        inputs:
+            repo_name:
+                type: string
+                description: The name of the calling repository
+                required: true
+            suites:
+                type: string
+                required: true
+                description: Stringified JSON list of integration test suites that should be run
+        secrets:
+            SETTINGS_XML:
+                required: true
+                description: Maven settings.xml file
+
+
+concurrency:
+    group: ${{ github.repository }}-${{ github.ref_name }}-build
+    cancel-in-progress: true
+
+jobs:
+    integration-tests:
+        runs-on: ubuntu-latest
+        strategy:
+            matrix:
+                suite: ${{fromJson(inputs.suites)}}
+        steps:
+            -   name: Set up Docker Buildx
+                uses: docker/setup-buildx-action@v1
+
+            -   name: Download docker image
+                uses: actions/download-artifact@v2
+                with:
+                    name: ${{inputs.repo_name}}
+                    path: /tmp
+
+            -   name: Load and run image
+                id: load_image
+                run: |
+                    docker load --input /tmp/${{inputs.repo_name}}.tar
+                    docker image ls -a
+                    mkdir ./shared-files
+                    current_dir=$(pwd)
+                    echo "::set-output name=container_id::$(docker run -d -p 8080:8080 -v $current_dir/shared-files:/data --add-host=host.docker.internal:host-gateway ${{inputs.repo_name}}:latest)"
+
+            # use maven to run the integration tests (faster than building the integration-test-jar-with-dependencies
+            -   uses: actions/checkout@v3
+
+            -   name: Set up JDK 17
+                uses: actions/setup-java@v3
+                with:
+                    java-version: 17
+                    distribution: microsoft
+                    cache: maven
+
+            -   name: Setup settings.xml
+                run: echo "${SETTINGS_XML}" >> our-settings.xml
+                env:
+                    SETTINGS_XML: ${{ secrets.SETTINGS_XML }}
+
+            -   name: Build integration module and dependencies
+                run: mvn --batch-mode install  -T 1C -s ./our-settings.xml -DskipTests -pl integration -am
+
+            -   name: Ensure application started up successfully
+                run: |
+                    curl --fail --silent -I http://localhost:8080/index.html
+
+            -   name: Run integration tests
+                working-directory: integration
+                run: |
+                    mvn test -Dtest=${{ matrix.suite }} -Dit.url=http://localhost:8080 -Dit.runner.host=172.17.0.1 -Dit.file.root=./shared-files:/data 
+
+            -   name: Webapp container logs
+                if: always()
+                run: docker logs ${{ steps.load_image.outputs.container_id }}

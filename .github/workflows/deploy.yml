@@ -1,0 +1,84 @@
+on:
+    workflow_call:
+        inputs:
+            environment:
+                required: true
+                type: string
+                description: The environment to deploy to
+            host:
+                required: true
+                type: string
+            service_name:
+                required: true
+                type: string
+            url:
+                required: true
+                type: string
+            version:
+                required: true
+                type: string
+
+        secrets:
+            update_version_script:
+                required: true
+
+
+name: Deploy to environment
+
+jobs:
+    deploy:
+        environment:
+            name: ${{ inputs.environment }}
+        env:
+            HOST: ${{ inputs.host }}
+            SERVICE_NAME: ${{ inputs.service_name }}
+            URL: ${{ inputs.url }}
+            VERSION: ${{ inputs.version }}
+
+        runs-on: ubuntu-latest
+        steps:
+            -   uses: actions/checkout@v3
+
+            -   name: Get currently deployed version
+                run: |
+                    deployedVersion=$(curl -I --fail --silent ${URL} | grep 'X-App-Version' | awk '{ print $2 }' | sed -e 's/[[:cntrl:]]//') 
+                    echo "Deployed version: ${deployedVersion}"
+
+            -   name: Install yq
+                run: |
+                    sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+                    sudo chmod a+x /usr/local/bin/yq
+                    yq --version
+
+            -   name: Setup updateVersion.sh
+                run: |
+                    echo "${SCRIPT}" >> updateVersion.sh
+                    chmod +x updateVersion.sh
+                    ./updateVersion.sh ${HOST} ${SERVICE_NAME} ${VERSION}
+                env:
+                    SCRIPT: ${{ secrets.update_version_script }}
+
+            -   name: Wait for deployment
+                run: |
+                    set +e # don't fail as soon as we get a 503 response
+                    
+                    # 60 minutes
+                    timeout=3600
+                    
+                    count=0
+                    while [ ${count} -lt ${timeout} ]
+                    do
+                        deployedVersion=$(curl -I --fail --silent ${URL} | grep 'X-App-Version' | awk '{ print $2 }' | sed -e 's/[[:cntrl:]]//')
+                        if [ "${deployedVersion}" == "${VERSION}" ] || [ "${URL}" == "no_url" ]
+                            then
+                            echo "${VERSION} deployed successfully at ${URL} in ${SECONDS} seconds"
+                            exit 0
+                        else
+                            echo "Waiting...currently deployed version is '${deployedVersion}'"
+                        fi
+                        sleep 5
+                        count=$((${count} + 5))
+                    done
+                    
+                    echo "Timeout: ${VERSION} has not been deployed @ ${URL} in ${SECONDS} seconds"
+                    exit 1
