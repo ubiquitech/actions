@@ -40,7 +40,7 @@ jobs:
                     docker image ls -a
                     mkdir /tmp/shared-files
                     echo "::set-output name=shared_folder::/tmp/shared-files"
-                    echo "::set-output name=container_id::$(docker run -d -p 8080:8080 -v $current_dir/shared-files:/data --add-host=host.docker.internal:host-gateway ${{inputs.repo_name}}:latest)"
+                    echo "::set-output name=container_id::$(docker run -d -p 8080:8080 -v /tmp/shared-files:/data --add-host=host.docker.internal:host-gateway ${{inputs.repo_name}}:latest)"
 
             # use maven to run the integration tests (faster than building the integration-test-jar-with-dependencies
             -   uses: actions/checkout@v3
