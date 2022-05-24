@@ -1,0 +1,62 @@
+# triggered when a new upstream build passes on the main branch. A workflow_dispatch event is sent to the downstream
+# projects, to try integrate the new version (on a new branch)
+name: Build downstream project based on new version of a upstream project
+on:
+    workflow_call:
+        inputs:
+            upstream_name:
+                type: string
+                description: Name of upstream project
+                required: true
+            new_version:
+                type: string
+                description: The new version
+                required: true
+            update_version_cmd:
+                type: string
+                description: Commands to update to new upstream version
+                required: true
+
+# allow this workflow to create a branch and push it.
+permissions: {
+    contents: write
+}
+
+jobs:
+    update:
+        runs-on: ubuntu-latest
+        steps:
+            -   name: Dump github context
+                run: echo "$GITHUB_CONTEXT"
+                shell: bash
+                env:
+                    GITHUB_CONTEXT: ${{ toJson(github) }}
+
+            -   uses: actions/checkout@v3
+                with:
+                    token: ${{ secrets.PAT_TOKEN }}
+
+            -   name: Install xmlstarlet
+                run: |
+                    sudo apt-get install xmlstarlet -y
+                    xmlstarlet --version
+
+            -   name: Create branch
+                run: |
+                    git branch ${{ inputs.upstream_name}}_integration_${{ inputs.new_version }}
+                    git checkout ${{ inputs.upstream_name}}_integration_${{ inputs.new_version }}
+
+            -   name: Update version
+                run: |
+                    echo "${{ inputs.update_version_cmd }}" > update_version.sh
+                    chmod +x update_version.sh
+                    ./update_version.sh
+
+                # this will trigger the default build workflow, only because we checked out the code using a custom token
+            -   name: Commit and push
+                run: |
+                    git config --local user.email "gh@ubiquitech.co.za"
+                    git config --local user.name "GitHub Actions"
+                    git add pom.xml
+                    git commit -m 'Update to ${{ inputs.upstream_name}} version ${{ inputs.new_version }}'
+                    git push --set-upstream origin ${{ inputs.upstream_name}}_integration_${{ inputs.new_version }}
