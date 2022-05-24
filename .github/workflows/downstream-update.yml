@@ -16,6 +16,10 @@ on:
                 type: string
                 description: Commands to update to new upstream version
                 required: true
+        secrets:
+            PAT_TOKEN:
+                required: true
+                description: A personal-access token with repo access
 
 # allow this workflow to create a branch and push it.
 permissions: {
