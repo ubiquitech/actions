@@ -69,6 +69,12 @@ jobs:
                 run: |
                     mvn test -Dtest=${{ matrix.suite }} -Dit.url=http://localhost:8080 -Dit.runner.host=172.17.0.1 -Dit.file.root=${{ steps.load_image.outputs.shared_folder }}:/data 
 
+            -   name: Publish Test Results
+                uses: mikepenz/action-junit-report@v3
+                if: always()
+                with:
+                    report_paths: '**/target/surefire-reports/*.xml'
+
             -   name: Webapp container logs
                 if: always()
                 run: docker logs ${{ steps.load_image.outputs.container_id }}

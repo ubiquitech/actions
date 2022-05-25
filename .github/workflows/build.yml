@@ -59,6 +59,12 @@ jobs:
                     name: ${{ inputs.repo_name }}
                     path: /tmp/${{ inputs.repo_name }}.tar
 
+            -   name: Publish Test Results
+                uses: mikepenz/action-junit-report@v3
+                if: always()
+                with:
+                    report_paths: '**/target/surefire-reports/*.xml'
+
             -   name: Clean cache
                 if: always()
                 run: |
