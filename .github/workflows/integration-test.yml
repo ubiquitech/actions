@@ -84,6 +84,7 @@ jobs:
                 uses: mikepenz/action-junit-report@v3
                 if: always()
                 with:
+                    check_name: Integration test report for ${{ matrix.suite }}
                     report_paths: '**/target/surefire-reports/*.xml'
 
             -   name: Webapp container logs
