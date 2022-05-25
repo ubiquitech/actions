@@ -1,0 +1,41 @@
+name: Merge branch into main
+
+on:
+    workflow_call:
+        inputs:
+            branch_name:
+                type: string
+                description: The name of the branch containing changes to merge
+                required: true
+            merge_into:
+                type: string
+                description: The name of the branch to merge changes into
+                required: false
+                default: main
+
+permissions:
+    contents: write
+
+jobs:
+    merge:
+        runs-on: ubuntu-latest
+        steps:
+            -   uses: actions/checkout@v3
+                with:
+                    ref: ${{ inputs.merge_into }}
+                    fetch-depth: 0
+
+            -   name: Set Git config
+                run: |
+                    git config --local user.email "gh@ubiquitech.co.za"
+                    git config --local user.name "GitHub Actions"
+                    git config pull.rebase false
+
+            -   name: Merge core integration branch
+                run: |
+                    git fetch
+                    git status
+                    git merge origin/${{ branch_name }} --no-edit
+                    git push
+                    git status
+                    git push -d origin ${{ branch_name }}
