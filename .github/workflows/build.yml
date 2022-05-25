@@ -17,9 +17,9 @@ on:
                 required: true
                 description: Maven settings.xml file
 
-permissions: {
+permissions:
+    contents: read
     checks: write # to publish test results
-}
 
 jobs:
     build:
