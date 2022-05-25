@@ -25,10 +25,13 @@ on:
 
 name: Deploy to environment
 
+concurrency:
+    group: ${{ inputs.host }}-${{ inputs.service_name }}
+    cancel-in-progress: true
+
 jobs:
     deploy:
         timeout-minutes: 90
-        concurrency: ${{ inputs.host }}-${{ inputs.service_name }}
         environment:
             name: ${{ inputs.environment }}
         env:
@@ -44,7 +47,7 @@ jobs:
                 shell: bash
                 env:
                     GITHUB_CONTEXT: ${{ toJson(github) }}
-                    
+
             -   uses: actions/checkout@v3
 
             -   name: Get currently deployed version
