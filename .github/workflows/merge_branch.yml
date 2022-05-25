@@ -35,7 +35,7 @@ jobs:
                 run: |
                     git fetch
                     git status
-                    git merge origin/${{ branch_name }} --no-edit
+                    git merge origin/${{ inputs.branch_name }} --no-edit
                     git push
                     git status
-                    git push -d origin ${{ branch_name }}
+                    git push -d origin ${{ inputs.branch_name }}
