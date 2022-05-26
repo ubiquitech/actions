@@ -26,8 +26,6 @@ on:
                 required: true
             NEWRELIC_API_KEY:
                 required: false
-            NEWRELIC_ACCOUNT_ID:
-                required: false
 
 
 name: Deploy to environment
@@ -76,16 +74,35 @@ jobs:
                 env:
                     SCRIPT: ${{ secrets.update_application_version_script }}
 
-            -   name: Log New Relic deployment
-                uses: newrelic/deployment-marker-action@v1
+            -   name: Timestamp
+                id: timestamp
+                run: |
+                    # Create the timestamp and use GitHub variable processing to render it in the next step, otherwise
+                    # the single-quotes around the JSON means it won't be interpolated by the shell
+                    DATE_NOW=$(date --utc +%FT%TZ)
+                    echo "::set-output name=value::${DATE_NOW}"
+
+            -   name: Log NewRelic deployment
                 if: inputs.newrelic_application_id != null
-                with:
-                    apiKey: ${{ secrets.NEWRELIC_API_KEY }}
-                    accountId: ${{ secrets.NEWRELIC_ACCOUNT_ID }}
-                    applicationId: ${{ inputs.newrelic_application_id }}
-                    revision: ${{ github.event.head_commit.id}}
-                    description: "Automated Deployment via Github Actions"
-                    user: ${{ github.actor }}
+                run: |
+                    # see https://docs.newrelic.com/docs/apm/new-relic-apm/maintenance/record-monitor-deployments/
+                    curl -X POST "https://api.newrelic.com/v2/applications/${{ inputs.newrelic_application_id }}/deployments.json" \
+                         -H "Api-Key:$API_KEY" \
+                         -i \
+                         -H "Content-Type: application/json" \
+                         -d \
+                    '{
+                      "deployment": {
+                        "revision": "${{ github.sha }}",
+                        "changelog": "Unspecified",
+                        "description": "${{ github.event.head_commit.message }}",
+                        "user": "${{github.sender.login || 'Unknown'}}",
+                        "timestamp": "${{ steps.timestamp.outputs.value }}"
+                      }
+                    }'
+
+                env:
+                    API_KEY: ${{ secrets.NEWRELIC_API_KEY }}
 
             -   name: Wait for deployment
                 run: |
