@@ -96,7 +96,7 @@ jobs:
                         "revision": "${{ github.sha }}",
                         "changelog": "Unspecified",
                         "description": "${{ github.event.head_commit.message }}",
-                        "user": "${{github.sender.login || 'Unknown'}}",
+                        "user": "${{ github.actor || 'Unknown'}}",
                         "timestamp": "${{ steps.timestamp.outputs.value }}"
                       }
                     }'
