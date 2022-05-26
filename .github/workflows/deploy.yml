@@ -21,11 +21,11 @@ on:
         secrets:
             update_version_script:
                 required: true
-            newrelic_api_key:
+            NEWRELIC_API_KEY:
                 required: false
-            newrelic_app_id:
+            NEWRELIC_APPLICATION_ID:
                 required: false
-            newrelic_account_id:
+            NEWRELIC_ACCOUNT_ID:
                 required: false
 
 
@@ -77,11 +77,11 @@ jobs:
 
             -   name: Log New Relic deployment
                 uses: newrelic/deployment-marker-action@v1
-                if: secrets.newrelic_account_id != null
+                if: secrets.NEWRELIC_ACCOUNT_ID != null
                 with:
-                    apiKey: ${{ secrets.newrelic_api_key }}
-                    accountId: ${{ secrets.newrelic_account_id }}
-                    applicationId: ${{ secrets.newrelic_application_id }}
+                    apiKey: ${{ secrets.NEWRELIC_API_KEY }}
+                    accountId: ${{ secrets.NEWRELIC_ACCOUNT_ID }}
+                    applicationId: ${{ secrets.NEWRELIC_APPLICATION_ID }}
                     revision: ${{ github.event.head_commit.id}}
                     description: "Automated Deployment via Github Actions"
                     user: ${{ github.actor }}
