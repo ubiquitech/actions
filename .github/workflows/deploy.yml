@@ -17,13 +17,14 @@ on:
             version:
                 required: true
                 type: string
+            newrelic_application_id:
+                required: false
+                type: string
 
         secrets:
-            update_version_script:
+            UPDATE_APPLICATION_VERSION_SCRIPT:
                 required: true
             NEWRELIC_API_KEY:
-                required: false
-            NEWRELIC_APPLICATION_ID:
                 required: false
             NEWRELIC_ACCOUNT_ID:
                 required: false
@@ -73,15 +74,15 @@ jobs:
                     chmod +x updateVersion.sh
                     ./updateVersion.sh ${HOST} ${SERVICE_NAME} ${VERSION}
                 env:
-                    SCRIPT: ${{ secrets.update_version_script }}
+                    SCRIPT: ${{ secrets.update_application_version_script }}
 
             -   name: Log New Relic deployment
                 uses: newrelic/deployment-marker-action@v1
-                if: secrets.NEWRELIC_ACCOUNT_ID != null
+                if: inputs.newrelic_application_id != null
                 with:
                     apiKey: ${{ secrets.NEWRELIC_API_KEY }}
                     accountId: ${{ secrets.NEWRELIC_ACCOUNT_ID }}
-                    applicationId: ${{ secrets.NEWRELIC_APPLICATION_ID }}
+                    applicationId: ${{ inputs.newrelic_application_id }}
                     revision: ${{ github.event.head_commit.id}}
                     description: "Automated Deployment via Github Actions"
                     user: ${{ github.actor }}
