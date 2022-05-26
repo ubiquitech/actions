@@ -21,6 +21,12 @@ on:
         secrets:
             update_version_script:
                 required: true
+            newrelic_api_key:
+                required: false
+            newrelic_app_id:
+                required: false
+            newrelic_account_id:
+                required: false
 
 
 name: Deploy to environment
@@ -68,6 +74,17 @@ jobs:
                     ./updateVersion.sh ${HOST} ${SERVICE_NAME} ${VERSION}
                 env:
                     SCRIPT: ${{ secrets.update_version_script }}
+
+            -   name: Log New Relic deployment
+                uses: newrelic/deployment-marker-action@v1
+                if: secrets.newrelic_account_id != null
+                with:
+                    apiKey: ${{ secrets.newrelic_api_key }}
+                    accountId: ${{ secrets.newrelic_account_id }}
+                    applicationId: ${{ secrets.newrelic_application_id }}
+                    revision: ${{ github.event.head_commit.id}}
+                    description: "Automated Deployment via Github Actions"
+                    user: ${{ github.actor }}
 
             -   name: Wait for deployment
                 run: |
