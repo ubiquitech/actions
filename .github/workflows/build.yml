@@ -15,7 +15,7 @@ on:
                 type: boolean
                 description: Whether to build and upload a docker image
                 default: true
-                required: true
+                required: false
 
         secrets:
             SETTINGS_XML:
