@@ -50,8 +50,8 @@ jobs:
                     docker load --input /tmp/${{inputs.repo_name}}.tar
                     docker image ls -a
                     mkdir /tmp/shared-files
-                    echo "::set-output name=shared_folder::/tmp/shared-files"
-                    echo "::set-output name=container_id::$(docker run -d -p 8080:8080 -v /tmp/shared-files:/data --add-host=host.docker.internal:host-gateway ${{inputs.repo_name}}:latest)"
+                    echo "shared_folder=/tmp/shared-files" >> $GITHUB_OUTPUT
+                    echo "container_id=$(docker run -d -p 8080:8080 -v /tmp/shared-files:/data --add-host=host.docker.internal:host-gateway ${{inputs.repo_name}}:latest)" >> $GITHUB_OUTPUT
 
             # use maven to run the integration tests (faster than building the integration-test-jar-with-dependencies
             -   uses: actions/checkout@v3

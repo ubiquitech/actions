@@ -78,6 +78,12 @@ jobs:
                     name: ${{ inputs.repo_name }}
                     path: /tmp/${{ inputs.repo_name }}.tar
 
+            -   run: echo "${{ inputs.build_number }}" > build_number.txt
+            -   uses: actions/upload-artifact@v2
+                with:
+                    name: build_number
+                    path: build_number.txt
+
             -   name: Publish Test Results
                 uses: mikepenz/action-junit-report@v3
                 if: always()

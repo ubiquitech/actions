@@ -80,7 +80,7 @@ jobs:
                     # Create the timestamp and use GitHub variable processing to render it in the next step, otherwise
                     # the single-quotes around the JSON means it won't be interpolated by the shell
                     DATE_NOW=$(date --utc +%FT%TZ)
-                    echo "::set-output name=value::${DATE_NOW}"
+                    echo "value=${DATE_NOW}" >> $GITHUB_OUTPUT
 
             -   name: Log NewRelic deployment
                 if: inputs.newrelic_application_id != null
