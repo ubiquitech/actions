@@ -21,6 +21,15 @@ on:
             SETTINGS_XML:
                 required: true
                 description: Maven settings.xml file
+            ACR_ENDPOINT:
+                required: true
+                description: Container registry endpoint
+            ACR_USERNAME:
+                required: true
+                description: Container registry username
+            ACR_PASSWORD:
+                required: true
+                description: Container registry password
 
 permissions:
     contents: read
