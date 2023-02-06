@@ -114,7 +114,7 @@ jobs:
                     count=0
                     while [ ${count} -lt ${timeout} ]
                     do
-                        deployedVersion=$(curl -I --fail --silent ${URL} | grep 'X-App-Version' | awk '{ print $2 }' | sed -e 's/[[:cntrl:]]//')
+                        deployedVersion=$(curl -I --fail --silent ${URL} | grep -i 'X-App-Version' | awk '{ print $2 }' | sed -e 's/[[:cntrl:]]//')
                         if [ "${deployedVersion}" == "${VERSION}" ] || [ "${URL}" == "no_url" ]
                             then
                             echo "${VERSION} deployed successfully at ${URL} in ${SECONDS} seconds"
