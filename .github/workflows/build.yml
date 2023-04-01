@@ -83,8 +83,8 @@ jobs:
                 if: inputs.build_docker_image
                 with:
                     context: webapp
-                    build-args:
-                        - VERSION=${{ inputs.build_number }}
+                    build-args: |
+                        VERSION=${{ inputs.build_number }}
                     tags: ${{ inputs.repo_name }}:latest
                     outputs: type=docker,dest=/tmp/${{ inputs.repo_name }}.tar
                     cache-from: type=gha
