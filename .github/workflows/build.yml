@@ -85,8 +85,8 @@ jobs:
                     context: webapp
                     tags: ${{ inputs.repo_name }}:latest
                     outputs: type=docker,dest=/tmp/${{ inputs.repo_name }}.tar
-                    cache-from: type=registry,ref=user/app:latest
-                    cache-to: type=inline
+                    cache-from: type=gha
+                    cache-to: type=gha,mode=max
 
             -   name: Upload docker image for tomcat webapp
                 uses: actions/upload-artifact@v3
