@@ -79,10 +79,12 @@ jobs:
                 run: mvn --batch-mode deploy -T 1C -s our-settings.xml -P release-deploy -DskipTests -Drevision=${{ inputs.build_number }}
 
             -   name: Build and export docker webapp image
-                uses: docker/build-push-action@v3
+                uses: docker/build-push-action@v4
                 if: inputs.build_docker_image
                 with:
                     context: webapp
+                    build-args:
+                        - VERSION=${{ inputs.build_number }}
                     tags: ${{ inputs.repo_name }}:latest
                     outputs: type=docker,dest=/tmp/${{ inputs.repo_name }}.tar
                     cache-from: type=gha
