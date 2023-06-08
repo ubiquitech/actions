@@ -7,6 +7,11 @@ on:
                 type: string
                 description: The name of the calling repository
                 required: true
+            requires_elasticsearch:
+                type: boolean
+                required: false
+                description: Whether or not the service requires elasticsearch to be running
+                default: false
             suites:
                 type: string
                 required: true
@@ -43,6 +48,11 @@ jobs:
                 with:
                     name: ${{inputs.repo_name}}
                     path: /tmp
+
+            -   name: Run ElasticSearch
+                if: $${{inputs.requires_elasticsearch}}
+                run:
+                    docker run --name elasticsearch  -p 9200:9200  -e discovery.type=single-node -e ES_JAVA_OPTS="-Xms1g -Xmx1g" -e xpack.security.enabled=false -it docker.elastic.co/elasticsearch/elasticsearch:8.8.0
 
             -   name: Load and run image
                 id: load_image
