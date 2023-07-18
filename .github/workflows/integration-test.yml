@@ -102,6 +102,10 @@ jobs:
                 if: always()
                 run: |
                     docker logs ${{ steps.load_image.outputs.container_id }}
+                    
+            -   name: Elasticsearch container logs
+                if: always()
+                run: |
                     docker logs ${{ steps.elastic_search.outputs.elastic_search_id }}
 
             -   name: Shared files
