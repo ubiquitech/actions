@@ -87,7 +87,7 @@ jobs:
                 id: meta
                 uses: docker/metadata-action@v4
                 with:
-                    images: ubiquitech.azurecr.io/${{ inputs.repo_name }}:${{ inputs.build_number }}
+                    images: ubiquitech.azurecr.io/${{ inputs.repo_name }}
                     labels: |
                         build_number=${{ inputs.build_number }}
                     tags: |
