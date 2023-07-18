@@ -50,9 +50,10 @@ jobs:
                     path: /tmp
 
             -   name: Run ElasticSearch
+                id: elastic_search
                 if: $${{inputs.requires_elasticsearch}}
                 run:
-                    docker run -d --name elasticsearch  -p 9200:9200  -e discovery.type=single-node -e ES_JAVA_OPTS="-Xms1g -Xmx1g" -e xpack.security.enabled=false docker.elastic.co/elasticsearch/elasticsearch:8.8.0
+                    echo "elastic_search_id=$(docker run -d --name elasticsearch  -p 9200:9200  -e discovery.type=single-node -e ES_JAVA_OPTS="-Xms1g -Xmx1g" -e xpack.security.enabled=false docker.elastic.co/elasticsearch/elasticsearch:8.8.0)" >> $GITHUB_OUTPUT
 
             -   name: Load and run image
                 id: load_image
@@ -99,7 +100,9 @@ jobs:
 
             -   name: Webapp container logs
                 if: always()
-                run: docker logs ${{ steps.load_image.outputs.container_id }}
+                run: |
+                    docker logs ${{ steps.load_image.outputs.container_id }}
+                    docker logs ${{ steps.elastic_search.outputs.elastic_search_id }}
 
             -   name: Shared files
                 if: always()

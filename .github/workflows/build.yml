@@ -16,6 +16,11 @@ on:
                 description: Whether to build and upload a docker image
                 default: true
                 required: false
+            push_docker_image:
+                type: boolean
+                description: Whether to push the built docker image to a container repo
+                default: false
+                required: false
 
         secrets:
             SETTINGS_XML:
@@ -78,6 +83,21 @@ jobs:
             -   name: Deploy maven artifacts to staging repository
                 run: mvn --batch-mode deploy -T 1C -s our-settings.xml -P release-deploy -DskipTests -Drevision=${{ inputs.build_number }}
 
+            -   name: Extract metadata (tags, labels) for Docker
+                if: inputs.push_docker_image
+                id: meta
+                uses: docker/metadata-action@v4
+                with:
+                    images: ubiquitech.azurecr.io/${{ inputs.repo_name }}
+                    labels: |
+                        build_number=${{ inputs.build_number }}
+                    tags: |
+                        type=schedule,pattern={{date 'YYYYMMDD-hhmmss' tz='Africa/Johannesburg'}}
+                        type=ref,event=branch
+                        type=ref,event=pr
+                        type=semver,pattern={{version}}
+                        type=semver,pattern={{major}}.{{minor}}
+
             -   name: Build and export docker webapp image
                 uses: docker/build-push-action@v4
                 if: inputs.build_docker_image
@@ -85,8 +105,22 @@ jobs:
                     context: webapp
                     build-args: |
                         VERSION=${{ inputs.build_number }}
-                    tags: ${{ inputs.repo_name }}:latest
+                    tags: ${{ steps.meta.outputs.tags }}
+                    labels: ${{ steps.meta.outputs.labels }}
                     outputs: type=docker,dest=/tmp/${{ inputs.repo_name }}.tar
+                    cache-from: type=gha
+                    cache-to: type=gha,mode=max
+
+            -   name: Push docker image
+                uses: docker/build-push-action@v4
+                if: inputs.push_docker_image
+                with:
+                    push: true
+                    context: webapp
+                    build-args: |
+                        VERSION=${{ inputs.build_number }}
+                    tags: ${{ steps.meta.outputs.tags }}
+                    labels: ${{ steps.meta.outputs.labels }}
                     cache-from: type=gha
                     cache-to: type=gha,mode=max
 
