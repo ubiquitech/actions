@@ -104,8 +104,7 @@ jobs:
                     context: webapp
                     build-args: |
                         VERSION=${{ inputs.build_number }}
-                    tags: ${{ steps.meta.outputs.tags }}
-                    labels: ${{ steps.meta.outputs.labels }}
+                    tags: ${{ inputs.repo_name }}:latest
                     outputs: type=docker,dest=/tmp/${{ inputs.repo_name }}.tar
                     cache-from: type=gha
                     cache-to: type=gha,mode=max
