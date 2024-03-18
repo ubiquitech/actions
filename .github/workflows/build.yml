@@ -21,6 +21,10 @@ on:
                 description: Whether to push the built docker image to a container repo
                 default: false
                 required: false
+        outputs:
+            artifact_version:
+                description: "The artifact version, e.g. 343-main-1"
+                value: ${{ jobs.build.outputs.artifact_version }}
 
         secrets:
             SETTINGS_XML:
