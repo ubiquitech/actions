@@ -9,7 +9,7 @@ on:
                 required: true
             build_number:
                 type: string
-                description: The build number
+                description: The build number, e.g. 343-main, excluding the run_attempt
                 required: true
             build_docker_image:
                 type: boolean
@@ -44,6 +44,8 @@ jobs:
     build:
         timeout-minutes: 20
         runs-on: ubuntu-latest
+        outputs:
+            artifact_version: ${{ steps.deploy_to_maven.outputs.artifact_version }} # e.g. 343-main-1
         steps:
             -   name: Dump github context
                 run: echo "$GITHUB_CONTEXT"
@@ -80,8 +82,12 @@ jobs:
             -   name: Run tests
                 run: mvn --batch-mode test -T 1C -s our-settings.xml
 
-            -   name: Deploy maven artifacts to staging repository
-                run: mvn --batch-mode deploy -T 1C -s our-settings.xml -P release-deploy -DskipTests -Drevision=${{ inputs.build_number }}
+            -   id: deploy_to_maven
+                name: Deploy maven artifacts to staging repository
+                run: |
+#                     see https://docs.github.com/en/actions/using-workflows/reusing-workflows?learn=getting_started&learnProduct=actions#using-outputs-from-a-reusable-workflow
+                    mvn --batch-mode deploy -T 1C -s our-settings.xml -P release-deploy -DskipTests -Drevision=${{ inputs.build_number }}-${{ github.run_attempt }}
+                    echo "artifact_version=${{ inputs.build_number }}-${{ github.run_attempt }}" >> $GITHUB_OUTPUT
 
             -   name: Extract metadata (tags, labels) for Docker
                 id: meta
@@ -89,7 +95,7 @@ jobs:
                 with:
                     images: ubiquitech.azurecr.io/${{ inputs.repo_name }}
                     labels: |
-                        build_number=${{ inputs.build_number }}
+                        artifact_version=${{ steps.deploy_to_maven.outputs.artifact_version }}
                     tags: |
                         type=schedule,pattern={{date 'YYYYMMDD-hhmmss' tz='Africa/Johannesburg'}}
                         type=ref,event=branch
@@ -103,7 +109,7 @@ jobs:
                 with:
                     context: webapp
                     build-args: |
-                        VERSION=${{ inputs.build_number }}
+                        VERSION=${{ steps.deploy_to_maven.outputs.artifact_version }}
                     tags: ${{ inputs.repo_name }}:latest
                     outputs: type=docker,dest=/tmp/${{ inputs.repo_name }}.tar
                     cache-from: type=gha
@@ -116,7 +122,7 @@ jobs:
                     push: true
                     context: webapp
                     build-args: |
-                        VERSION=${{ inputs.build_number }}
+                        VERSION=${{ steps.deploy_to_maven.outputs.artifact_version }}
                     tags: ${{ steps.meta.outputs.tags }}
                     labels: ${{ steps.meta.outputs.labels }}
                     cache-from: type=gha
@@ -128,12 +134,6 @@ jobs:
                 with:
                     name: ${{ inputs.repo_name }}
                     path: /tmp/${{ inputs.repo_name }}.tar
-
-            -   run: echo "${{ inputs.build_number }}" > build_number.txt
-            -   uses: actions/upload-artifact@v3
-                with:
-                    name: build_number
-                    path: build_number.txt
 
             -   name: Publish Test Results
                 uses: mikepenz/action-junit-report@v3
