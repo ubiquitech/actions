@@ -87,6 +87,7 @@ jobs:
                 run: |
                     mvn --batch-mode deploy -T 1C -s our-settings.xml -P release-deploy -DskipTests -Drevision=${{ inputs.build_number }}-${{ github.run_attempt }}
                     echo "artifact_version=${{ inputs.build_number }}-${{ github.run_attempt }}" >> $GITHUB_OUTPUT
+                    echo "Exported artifact_version as output: ${{ inputs.build_number }}-${{ github.run_attempt }}"
 
             -   name: Extract metadata (tags, labels) for Docker
                 id: meta
