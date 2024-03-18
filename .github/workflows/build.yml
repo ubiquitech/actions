@@ -82,10 +82,9 @@ jobs:
             -   name: Run tests
                 run: mvn --batch-mode test -T 1C -s our-settings.xml
 
-            -   id: deploy_to_maven
-                name: Deploy maven artifacts to staging repository
+            -   name: Deploy maven artifacts to staging repository
+                id: deploy_to_maven
                 run: |
-#                     see https://docs.github.com/en/actions/using-workflows/reusing-workflows?learn=getting_started&learnProduct=actions#using-outputs-from-a-reusable-workflow
                     mvn --batch-mode deploy -T 1C -s our-settings.xml -P release-deploy -DskipTests -Drevision=${{ inputs.build_number }}-${{ github.run_attempt }}
                     echo "artifact_version=${{ inputs.build_number }}-${{ github.run_attempt }}" >> $GITHUB_OUTPUT
 
