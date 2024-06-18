@@ -101,12 +101,19 @@ jobs:
             -   name: Webapp container logs
                 if: always()
                 run: |
-                    docker logs ${{ steps.load_image.outputs.container_id }}
+                    docker logs ${{ steps.load_image.outputs.container_id }} > webapp.log
                     
             -   name: Elasticsearch container logs
                 if: always()
                 run: |
-                    docker logs ${{ steps.elastic_search.outputs.elastic_search_id }}
+                    docker logs ${{ steps.elastic_search.outputs.elastic_search_id }} > elasticsearch.log
+
+            -   name: Attach logs
+                if: always()
+                uses: actions/upload-artifact@v4
+                with:
+                    name: '*.log'
+                    compression-level: 5
 
             -   name: Shared files
                 if: always()
