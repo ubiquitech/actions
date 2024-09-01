@@ -95,8 +95,8 @@ jobs:
                       "deployment": {
                         "revision": "${{ github.sha }}",
                         "changelog": "Unspecified",
-                        "description": "${{ github.event.head_commit.message }}",
-                        "user": "${{ github.actor || 'Unknown'}}",
+                        "description": "${{ toJSON(github.event.head_commit.message) }}",
+                        "user": "${{ toJSON(github.actor) || 'Unknown'}}",
                         "timestamp": "${{ steps.timestamp.outputs.value }}"
                       }
                     }'
