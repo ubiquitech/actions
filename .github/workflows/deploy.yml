@@ -86,20 +86,38 @@ jobs:
                 if: inputs.newrelic_application_id != null
                 run: |
                     # see https://docs.newrelic.com/docs/apm/new-relic-apm/maintenance/record-monitor-deployments/
+                    
+                    # Set variables that will be interpolated by GitHub Actions
+                    REVISION="${{ github.sha }}"
+                    CHANGELOG="Unspecified"
+                    DESCRIPTION="${{ github.event.head_commit.message }}"
+                    USER="${{ toJSON(github.actor) || Unknown}}"
+                    TIMESTAMP="${{ steps.timestamp.outputs.value }}"
+                  
+                    # Construct JSON data using jq
+                    json_payload=$(jq -n \
+                        --arg revision "$REVISION" \
+                        --arg changelog "$CHANGELOG" \
+                        --arg description "$DESCRIPTION" \
+                        --arg user "${USER:-Unknown}" \
+                        --arg timestamp "$TIMESTAMP" \
+                        '{
+                            deployment: {
+                              revision: $revision,
+                              changelog: $changelog,
+                              description: $description,
+                              user: $user,
+                              timestamp: $timestamp
+                            }
+                        }'
+                    )
+                  
+                  # Use the JSON payload in the curl command
                     curl -X POST "https://api.newrelic.com/v2/applications/${{ inputs.newrelic_application_id }}/deployments.json" \
-                         -H "X-Api-Key:$API_KEY" \
-                         -i \
-                         -H "Content-Type: application/json" \
-                         -d \
-                    '{
-                      "deployment": {
-                        "revision": "${{ github.sha }}",
-                        "changelog": "Unspecified",
-                        "description": "${{ toJSON(github.event.head_commit.message) }}",
-                        "user": "${{ toJSON(github.actor) || 'Unknown'}}",
-                        "timestamp": "${{ steps.timestamp.outputs.value }}"
-                      }
-                    }'
+                    -H "X-Api-Key:$API_KEY" \
+                    -H "Content-Type: application/json" \
+                    -i \
+                    -d "$json_payload"
 
                 env:
                     API_KEY: ${{ secrets.NEWRELIC_API_KEY }}
