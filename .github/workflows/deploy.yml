@@ -91,7 +91,7 @@ jobs:
                     REVISION="${{ github.sha }}"
                     CHANGELOG="Unspecified"
                     DESCRIPTION="${{ github.event.head_commit.message }}"
-                    USER="${{ toJSON(github.actor) || Unknown}}"
+                    USER="${{ toJSON(github.actor) || 'Unknown' }}"
                     TIMESTAMP="${{ steps.timestamp.outputs.value }}"
                   
                     # Construct JSON data using jq
