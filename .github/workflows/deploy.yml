@@ -112,7 +112,7 @@ jobs:
                         }'
                     )
                   
-                  # Use the JSON payload in the curl command
+                    # Use the JSON payload in the curl command
                     curl -X POST "https://api.newrelic.com/v2/applications/${{ inputs.newrelic_application_id }}/deployments.json" \
                     -H "X-Api-Key:$API_KEY" \
                     -H "Content-Type: application/json" \
