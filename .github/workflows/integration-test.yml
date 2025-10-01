@@ -1,121 +1,126 @@
 name: Run integration tests against Docker image
 
 on:
-    workflow_call:
-        inputs:
-            repo_name:
-                type: string
-                description: The name of the calling repository
-                required: true
-            requires_elasticsearch:
-                type: boolean
-                required: false
-                description: Whether or not the service requires elasticsearch to be running
-                default: false
-            suites:
-                type: string
-                required: true
-                description: Stringified JSON list of integration test suites that should be run
-        secrets:
-            SETTINGS_XML:
-                required: true
-                description: Maven settings.xml file
+  workflow_call:
+    inputs:
+      repo_name:
+        type: string
+        description: The name of the calling repository
+        required: true
+      requires_elasticsearch:
+        type: boolean
+        required: false
+        description: Whether or not the service requires elasticsearch to be running
+        default: false
+      suites:
+        type: string
+        required: true
+        description: Stringified JSON list of integration test suites that should be run
+    secrets:
+      SETTINGS_XML:
+        required: true
+        description: Maven settings.xml file
 
 permissions:
-    contents: read
-    checks: write
+  contents: read
+  checks: write
 
 jobs:
-    integration-tests:
-        timeout-minutes: 20
-        runs-on: ubuntu-latest
-        strategy:
-            fail-fast: false
-            matrix:
-                suite: ${{fromJson(inputs.suites)}}
-        steps:
-            -   name: Dump github context
-                run: echo "$GITHUB_CONTEXT"
-                shell: bash
-                env:
-                    GITHUB_CONTEXT: ${{ toJson(github) }}
+  integration-tests:
+    timeout-minutes: 20
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        suite: ${{fromJson(inputs.suites)}}
+    steps:
+      - name: Dump github context
+        run: echo "$GITHUB_CONTEXT"
+        shell: bash
+        env:
+          GITHUB_CONTEXT: ${{ toJson(github) }}
 
-            -   name: Set up Docker Buildx
-                uses: docker/setup-buildx-action@v2
+      - name: Set TZ env
+        run: echo "TZ=Africa/Johannesburg" >> $GITHUB_ENV
+      - name: Check time
+        run: date    # should show GMT+2
 
-            -   name: Download docker image
-                uses: actions/download-artifact@v4
-                with:
-                    name: ${{inputs.repo_name}}
-                    path: /tmp
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
 
-            -   name: Run ElasticSearch
-                id: elastic_search
-                if: $${{inputs.requires_elasticsearch}}
-                run:
-                    echo "elastic_search_id=$(docker run -d --name elasticsearch  -p 9200:9200  -e discovery.type=single-node -e ES_JAVA_OPTS="-Xms1g -Xmx1g" -e xpack.security.enabled=false docker.elastic.co/elasticsearch/elasticsearch:8.8.0)" >> $GITHUB_OUTPUT
+      - name: Download docker image
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{inputs.repo_name}}
+          path: /tmp
 
-            -   name: Load and run image
-                id: load_image
-                run: |
-                    docker load --input /tmp/${{inputs.repo_name}}.tar
-                    docker image ls -a
-                    mkdir /tmp/shared-files
-                    echo "shared_folder=/tmp/shared-files" >> $GITHUB_OUTPUT
-                    echo "container_id=$(docker run -d -p 8080:8080 -v /tmp/shared-files:/data --add-host=host.docker.internal:host-gateway ${{inputs.repo_name}}:latest)" >> $GITHUB_OUTPUT
+      - name: Run ElasticSearch
+        id: elastic_search
+        if: $${{inputs.requires_elasticsearch}}
+        run:
+          echo "elastic_search_id=$(docker run -d --name elasticsearch  -p 9200:9200  -e discovery.type=single-node -e ES_JAVA_OPTS="-Xms1g -Xmx1g" -e xpack.security.enabled=false docker.elastic.co/elasticsearch/elasticsearch:8.8.0)" >> $GITHUB_OUTPUT
 
-            # use maven to run the integration tests (faster than building the integration-test-jar-with-dependencies
-            -   uses: actions/checkout@v3
+      - name: Load and run image
+        id: load_image
+        run: |
+          docker load --input /tmp/${{inputs.repo_name}}.tar
+          docker image ls -a
+          mkdir /tmp/shared-files
+          echo "shared_folder=/tmp/shared-files" >> $GITHUB_OUTPUT
+          echo "container_id=$(docker run -d -p 8080:8080 -v /tmp/shared-files:/data --add-host=host.docker.internal:host-gateway ${{inputs.repo_name}}:latest)" >> $GITHUB_OUTPUT
 
-            -   name: Set up JDK 21
-                uses: actions/setup-java@v3
-                with:
-                    java-version: 21
-                    distribution: microsoft
-                    cache: maven
+      # use maven to run the integration tests (faster than building the integration-test-jar-with-dependencies
+      - uses: actions/checkout@v3
 
-            -   name: Setup settings.xml
-                run: echo "${SETTINGS_XML}" >> our-settings.xml
-                env:
-                    SETTINGS_XML: ${{ secrets.SETTINGS_XML }}
+      - name: Set up JDK 21
+        uses: actions/setup-java@v3
+        with:
+          java-version: 21
+          distribution: microsoft
+          cache: maven
 
-            -   name: Build integration module and dependencies
-                run: mvn --batch-mode install  -T 1C -s ./our-settings.xml -DskipTests -pl integration -am
+      - name: Setup settings.xml
+        run: echo "${SETTINGS_XML}" >> our-settings.xml
+        env:
+          SETTINGS_XML: ${{ secrets.SETTINGS_XML }}
 
-            -   name: Ensure application started up successfully
-                run: |
-                    curl --fail --silent -I http://localhost:8080/index.html
+      - name: Build integration module and dependencies
+        run: mvn --batch-mode install  -T 1C -s ./our-settings.xml -DskipTests -pl integration -am
 
-            -   name: Run integration tests
-                working-directory: integration
-                run: |
-                    mvn test -Dtest=${{ matrix.suite }} -Dit.url=http://localhost:8080 -Dit.runner.host=172.17.0.1 -Dit.file.root=${{ steps.load_image.outputs.shared_folder }}:/data 
+      - name: Ensure application started up successfully
+        run: |
+          curl --fail --silent -I http://localhost:8080/index.html
 
-            -   name: Publish Test Results
-                uses: mikepenz/action-junit-report@v3
-                if: always()
-                with:
-                    check_name: IT tests ${{ matrix.suite }}
-                    report_paths: '**/target/surefire-reports/*.xml'
+      - name: Run integration tests
+        working-directory: integration
+        run: |
+          mvn test -Dtest=${{ matrix.suite }} -Dit.url=http://localhost:8080 -Dit.runner.host=172.17.0.1 -Dit.file.root=${{ steps.load_image.outputs.shared_folder }}:/data 
 
-            -   name: Webapp container logs
-                if: always()
-                run: |
-                    docker logs ${{ steps.load_image.outputs.container_id }} > webapp.log
-                    
-            -   name: Elasticsearch container logs
-                if: always()
-                run: |
-                    docker logs ${{ steps.elastic_search.outputs.elastic_search_id }} > elasticsearch.log
+      - name: Publish Test Results
+        uses: mikepenz/action-junit-report@v3
+        if: always()
+        with:
+          check_name: IT tests ${{ matrix.suite }}
+          report_paths: '**/target/surefire-reports/*.xml'
 
-            -   name: Attach logs
-                if: always()
-                uses: actions/upload-artifact@v4
-                with:
-                    name: '${{ matrix.suite }} Logs'
-                    path: '*.log'
-                    compression-level: 5
+      - name: Webapp container logs
+        if: always()
+        run: |
+          docker logs ${{ steps.load_image.outputs.container_id }} > webapp.log
 
-            -   name: Shared files
-                if: always()
-                run: ls -l ${{ steps.load_image.outputs.shared_folder }}
+      - name: Elasticsearch container logs
+        if: always()
+        run: |
+          docker logs ${{ steps.elastic_search.outputs.elastic_search_id }} > elasticsearch.log
+
+      - name: Attach logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: '${{ matrix.suite }} Logs'
+          path: '*.log'
+          compression-level: 5
+
+      - name: Shared files
+        if: always()
+        run: ls -l ${{ steps.load_image.outputs.shared_folder }}
