@@ -89,9 +89,13 @@ jobs:
             -   name: Deploy maven artifacts to staging repository
                 id: deploy_to_maven
                 run: |
-                    mvn --batch-mode deploy -T 1C -s our-settings.xml -P release-deploy -DskipTests -Drevision=${{ inputs.build_number }}-${{ github.run_attempt }}
-                    echo "artifact_version=${{ inputs.build_number }}-${{ github.run_attempt }}" >> $GITHUB_OUTPUT
-                    echo "Exported artifact_version as output: ${{ inputs.build_number }}-${{ github.run_attempt }}"
+                    # Start with the raw value from the workflow input
+                    REVISION="${{ inputs.build_number }}-${{ github.run_attempt }}"
+                    # Replace all "/" with "-" in REVISION
+                    REVISION="${REVISION//\//-}"
+                    mvn --batch-mode deploy -T 1C -s our-settings.xml -P release-deploy -DskipTests -Drevision="$REVISION"
+                    echo "artifact_version=$REVISION" >> "$GITHUB_OUTPUT"
+                    echo "Exported artifact_version as output: $REVISION"
 
             -   name: Extract metadata (tags, labels) for Docker
                 id: meta
